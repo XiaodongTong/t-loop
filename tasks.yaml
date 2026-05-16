@@ -1,0 +1,28 @@
+# Global defaults (optional)
+defaults:
+  model: opus  # claude model to use, can override per task
+
+tasks:
+  # ── Example tasks ──────────────────────────────────────────
+  # Uncomment and edit to use:
+
+  # - name: Fix login timeout bug
+  #   dir: ~/projects/auth-service
+  #   prompt: |
+  #     Fix the login timeout issue in src/auth.ts.
+  #     Currently the session expires after 5 minutes instead of 30 minutes.
+  #     Update the timeout constant and add a test.
+
+  # - name: Add pagination to users API
+  #   dir: ~/projects/api-gateway
+  #   prompt: |
+  #     Add cursor-based pagination to the GET /users endpoint.
+  #     Support `cursor` and `limit` query parameters.
+  #     Default limit should be 20.
+
+  # - name: Refactor database queries
+  #   dir: ~/projects/backend
+  #   model: sonnet  # override model for this task
+  #   prompt_file: ./prompts/refactor-db.md  # read prompt from file
+
+
