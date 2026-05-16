@@ -3,6 +3,8 @@
 import subprocess
 from datetime import datetime
 
+from tloop.claude_runner import run_claude
+
 GREEN = "\033[92m"
 RED = "\033[91m"
 YELLOW = "\033[93m"
@@ -69,26 +71,6 @@ def branch_exists(dir_path, name):
     return result.stdout.strip() != ""
 
 
-def _run_commit_prompt(dir_path, prompt_text, log_file=None):
-    result = subprocess.run(
-        ["claude", "-p", prompt_text],
-        cwd=dir_path,
-        capture_output=True,
-        text=True,
-    )
-    if log_file:
-        with open(log_file, "a") as log:
-            log.write(f"[auto-commit] claude -p exit code: {result.returncode}\n")
-            if result.stdout:
-                log.write(result.stdout + "\n")
-            if result.stderr:
-                log.write(result.stderr + "\n")
-            log.flush()
-    if result.returncode != 0 and log_file is None:
-        print(f"{YELLOW}  Auto-commit prompt exited with code {result.returncode}{RESET}")
-    return result.returncode == 0
-
-
 def ensure_clean_git(dir_path, task_name, log_file=None):
     if not is_git_repo(dir_path):
         return True
@@ -98,11 +80,21 @@ def ensure_clean_git(dir_path, task_name, log_file=None):
 
     if has_staged_changes(dir_path):
         print(f"{YELLOW}  Dirty working tree detected. Auto-committing staged changes...{RESET}")
-        _run_commit_prompt(dir_path, COMMIT_STAGED_PROMPT, log_file)
+        run_claude(
+            COMMIT_STAGED_PROMPT,
+            cwd=dir_path,
+            verify_fn=is_git_clean,
+            log_file=log_file,
+        )
 
     if not is_git_clean(dir_path):
         print(f"{YELLOW}  Committing remaining working-directory changes...{RESET}")
-        _run_commit_prompt(dir_path, COMMIT_WORKDIR_PROMPT, log_file)
+        run_claude(
+            COMMIT_WORKDIR_PROMPT,
+            cwd=dir_path,
+            verify_fn=is_git_clean,
+            log_file=log_file,
+        )
 
     if is_git_clean(dir_path):
         print(f"{GREEN}  Working tree is now clean.{RESET}")
