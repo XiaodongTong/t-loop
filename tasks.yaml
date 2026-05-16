@@ -1,6 +1,5 @@
 # Global defaults (optional)
-defaults:
-  model: opus  # claude model to use, can override per task
+defaults: {}
 
 tasks:
   # ── Example tasks ──────────────────────────────────────────
@@ -23,6 +22,22 @@ tasks:
   # - name: Refactor database queries
   #   dir: ~/projects/backend
   #   model: sonnet  # override model for this task
+  #   branch: feat/db-refactor  # create task branch (default: true = auto-generate)
   #   prompt_file: ./prompts/refactor-db.md  # read prompt from file
 
+  # Branch field options:
+  #   omitted / true  → auto-generate feature-YYYYMMDD-NNN
+  #   "feat/name"     → use specified name (append -NNN if exists)
+  #   false           → skip branch creation, work on current branch
 
+  - name: blink
+    dir: ~/workingspace/blink
+    prompt: <  ./docs/plan/p1-enhancement.md
+
+  - name: t-loop
+    dir: ~/workingspace/t-loop
+    prompt: < ./docs/plan/plan01-git.md
+
+
+
+    

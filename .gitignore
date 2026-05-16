@@ -1,3 +1,5 @@
 .tloop-state.json
 logs/
 __pycache__/
+.cybervisor/
+cybervisor.yaml

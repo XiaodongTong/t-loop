@@ -25,6 +25,157 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
+COMMIT_STAGED_PROMPT = (
+    "You are performing a protective auto-commit of STAGED changes in this repository.\n"
+    "Follow these steps exactly:\n"
+    "1. Run `git diff --cached --name-only` to see what is staged.\n"
+    "2. Check each file for sensitive content (e.g., .env, credentials, secret keys, API tokens, private keys). "
+    "If you find any sensitive files staged, unstage them with `git restore --staged <file>` and report what you excluded.\n"
+    "3. If any files remain staged after the sensitive-file check, commit them with a Chinese conventional-commit message "
+    "(format: `<type>: <description>` where type is one of: feat, fix, refactor, docs, style, test, chore, perf, ci, build). "
+    "Do NOT use the `--no-verify` flag.\n"
+    "4. If nothing remains staged after the sensitive-file check, report that there is nothing to commit.\n"
+)
+
+COMMIT_WORKDIR_PROMPT = (
+    "You are performing a protective auto-commit of all remaining UNSTAGED changes in this repository.\n"
+    "Follow these steps exactly:\n"
+    "1. Run `git add -A` to stage all working-directory changes.\n"
+    "2. Run `git diff --cached --name-only` to see what is now staged.\n"
+    "3. Check each file for sensitive content (e.g., .env, credentials, secret keys, API tokens, private keys). "
+    "If you find any sensitive files staged, unstage them with `git restore --staged <file>` and report what you excluded.\n"
+    "4. If any files remain staged after the sensitive-file check, commit them with a Chinese conventional-commit message "
+    "(format: `<type>: <description>` where type is one of: feat, fix, refactor, docs, style, test, chore, perf, ci, build). "
+    "Do NOT use the `--no-verify` flag.\n"
+    "5. If nothing remains staged after the sensitive-file check, report that there is nothing to commit.\n"
+)
+
+
+def _git(dir_path, *args):
+    result = subprocess.run(
+        ["git"] + list(args),
+        cwd=dir_path,
+        capture_output=True,
+        text=True,
+    )
+    return result
+
+
+def is_git_repo(dir_path):
+    result = _git(dir_path, "rev-parse", "--is-inside-work-tree")
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+def is_git_clean(dir_path):
+    result = _git(dir_path, "status", "--porcelain")
+    return result.returncode == 0 and result.stdout.strip() == ""
+
+
+def has_staged_changes(dir_path):
+    result = _git(dir_path, "diff", "--cached", "--quiet")
+    return result.returncode == 1
+
+
+def is_detached_head(dir_path):
+    result = _git(dir_path, "symbolic-ref", "-q", "HEAD")
+    return result.returncode != 0
+
+
+def branch_exists(dir_path, name):
+    result = _git(dir_path, "branch", "--list", name)
+    return result.stdout.strip() != ""
+
+
+def _run_commit_prompt(dir_path, prompt_text, log_file=None):
+    cmd = ["cybervisor", "run", prompt_text]
+    result = subprocess.run(
+        cmd,
+        cwd=dir_path,
+        capture_output=True,
+        text=True,
+    )
+    if log_file:
+        with open(log_file, "a") as log:
+            log.write(f"[auto-commit] cybervisor run exit code: {result.returncode}\n")
+            if result.stdout:
+                log.write(result.stdout + "\n")
+            if result.stderr:
+                log.write(result.stderr + "\n")
+            log.flush()
+    if result.returncode != 0 and log_file is None:
+        print(f"{YELLOW}  Auto-commit prompt exited with code {result.returncode}{RESET}")
+    return result.returncode == 0
+
+
+def ensure_clean_git(dir_path, task_name, log_file=None):
+    if not is_git_repo(dir_path):
+        return True
+
+    if is_git_clean(dir_path):
+        return True
+
+    if has_staged_changes(dir_path):
+        print(f"{YELLOW}  Dirty working tree detected. Auto-committing staged changes...{RESET}")
+        _run_commit_prompt(dir_path, COMMIT_STAGED_PROMPT, log_file)
+
+    if not is_git_clean(dir_path):
+        print(f"{YELLOW}  Committing remaining working-directory changes...{RESET}")
+        _run_commit_prompt(dir_path, COMMIT_WORKDIR_PROMPT, log_file)
+
+    if is_git_clean(dir_path):
+        print(f"{GREEN}  Working tree is now clean.{RESET}")
+        return True
+
+    print(f"{RED}  Failed to clean working tree after auto-commit. Skipping task.{RESET}")
+    return False
+
+
+def find_next_available_branch(dir_path, prefix):
+    for n in range(1, 1000):
+        name = f"{prefix}-{n:03d}"
+        if not branch_exists(dir_path, name):
+            return name
+    return None
+
+
+def create_task_branch(dir_path, branch_config):
+    if not is_git_repo(dir_path):
+        return True
+
+    if branch_config is False:
+        return True
+
+    if is_detached_head(dir_path):
+        print(f"{RED}  Cannot create branch: repository is in detached HEAD state.{RESET}")
+        return False
+
+    today = datetime.now().strftime("%Y%m%d")
+
+    if branch_config is True or branch_config is None:
+        prefix = f"feature-{today}"
+        name = find_next_available_branch(dir_path, prefix)
+        if name is None:
+            print(f"{RED}  Could not find an available branch name with prefix {prefix}{RESET}")
+            return False
+    else:
+        custom = str(branch_config)
+        if not branch_exists(dir_path, custom):
+            name = custom
+        else:
+            prefix = custom
+            name = find_next_available_branch(dir_path, prefix)
+            if name is None:
+                print(f"{RED}  Could not find an available branch name with prefix {prefix}{RESET}")
+                return False
+
+    result = _git(dir_path, "checkout", "-b", name)
+    if result.returncode != 0:
+        print(f"{RED}  Failed to create branch '{name}': {result.stderr.strip()}{RESET}")
+        return False
+
+    print(f"{GREEN}  Created and checked out branch: {name}{RESET}")
+    return True
+
 
 def ensure_yaml():
     try:
@@ -96,6 +247,7 @@ def run_task(task, index, state, defaults):
     prompt = task.get("prompt", "")
     prompt_file = task.get("prompt_file")
     model = task.get("model", defaults.get("model"))
+    branch_config = task.get("branch", True)
 
     if not os.path.isdir(dir_path):
         print(f"{RED}  Directory not found: {dir_path}{RESET}")
@@ -127,6 +279,37 @@ def run_task(task, index, state, defaults):
     print(f"  Directory: {CYAN}{dir_path}{RESET}")
     print(f"{BOLD}{'=' * 60}{RESET}\n")
 
+    # Log file (needed for auto-commit output)
+    LOGS_DIR.mkdir(exist_ok=True)
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+    log_file = LOGS_DIR / f"{index + 1:03d}-{safe_name}.log"
+
+    # Write initial log header before auto-commit phase
+    with open(log_file, "w") as log:
+        log.write(f"Task: {name}\n")
+        log.write(f"Directory: {dir_path}\n")
+        log.write("-" * 60 + "\n\n")
+
+    # Phase 1: Auto-commit dirty changes
+    if not ensure_clean_git(dir_path, name, log_file):
+        state.setdefault("tasks", {})[str(index)] = {
+            "status": "failed",
+            "error": "Failed to clean working tree via auto-commit",
+            "updated_at": datetime.now().isoformat(),
+        }
+        save_state(state)
+        return False
+
+    # Phase 2: Branch management
+    if not create_task_branch(dir_path, branch_config):
+        state.setdefault("tasks", {})[str(index)] = {
+            "status": "failed",
+            "error": "Failed to create task branch",
+            "updated_at": datetime.now().isoformat(),
+        }
+        save_state(state)
+        return False
+
     # Update state to running
     started = datetime.now().isoformat()
     state.setdefault("tasks", {})[str(index)] = {
@@ -136,21 +319,14 @@ def run_task(task, index, state, defaults):
     save_state(state)
 
     # Build command
-    cmd = ["claude", "-p", prompt]
+    cmd = ["cybervisor", "run", prompt]
     if model:
         cmd.extend(["--model", model])
 
-    # Log file
-    LOGS_DIR.mkdir(exist_ok=True)
-    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
-    log_file = LOGS_DIR / f"{index + 1:03d}-{safe_name}.log"
-
     try:
-        with open(log_file, "w") as log:
-            log.write(f"Task: {name}\n")
-            log.write(f"Directory: {dir_path}\n")
+        with open(log_file, "a") as log:
             log.write(f"Started: {started}\n")
-            log.write(f"Command: claude -p <prompt>\n")
+            log.write(f"Command: cybervisor run <prompt>\n")
             log.write("-" * 60 + "\n\n")
             log.flush()
 
