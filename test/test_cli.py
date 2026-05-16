@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for t-loop main module."""
+"""Tests for tloop.cli module."""
 
 import os
 import subprocess
@@ -7,9 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-import importlib
-git_ops = importlib.import_module("git_ops")
-tl = importlib.import_module("t-loop")
+from tloop import cli
 
 
 def _init_git_repo(tmpdir):
@@ -38,8 +36,8 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp()
         _init_git_repo(self.tmpdir)
 
-    @patch.object(tl, "ensure_clean_git", return_value=True)
-    @patch.object(tl, "create_task_branch", return_value=True)
+    @patch.object(cli, "ensure_clean_git", return_value=True)
+    @patch.object(cli, "create_task_branch", return_value=True)
     @patch("subprocess.Popen")
     def test_run_task_with_git_phases_pass(self, mock_popen, mock_branch, mock_clean):
         mock_proc = MagicMock()
@@ -55,12 +53,12 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "prompt": "do something",
             "branch": "feat/test",
         }
-        result = tl.run_task(task, 0, state, {})
+        result = cli.run_task(task, 0, state, {})
         self.assertTrue(result)
         mock_clean.assert_called_once()
         mock_branch.assert_called_once_with(self.tmpdir, "feat/test")
 
-    @patch.object(tl, "ensure_clean_git", return_value=False)
+    @patch.object(cli, "ensure_clean_git", return_value=False)
     def test_run_task_git_clean_failure_skips_task(self, mock_clean):
         state = {"tasks": {}, "version": 1}
         task = {
@@ -68,13 +66,13 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "dir": self.tmpdir,
             "prompt": "do something",
         }
-        result = tl.run_task(task, 0, state, {})
+        result = cli.run_task(task, 0, state, {})
         self.assertFalse(result)
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
         self.assertIn("auto-commit", state["tasks"]["0"]["error"])
 
-    @patch.object(tl, "ensure_clean_git", return_value=True)
-    @patch.object(tl, "create_task_branch", return_value=False)
+    @patch.object(cli, "ensure_clean_git", return_value=True)
+    @patch.object(cli, "create_task_branch", return_value=False)
     def test_run_task_branch_failure_skips_task(self, mock_branch, mock_clean):
         state = {"tasks": {}, "version": 1}
         task = {
@@ -83,12 +81,12 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "prompt": "do something",
             "branch": True,
         }
-        result = tl.run_task(task, 0, state, {})
+        result = cli.run_task(task, 0, state, {})
         self.assertFalse(result)
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
         self.assertIn("branch", state["tasks"]["0"]["error"])
 
-    @patch.object(tl, "ensure_clean_git", return_value=False)
+    @patch.object(cli, "ensure_clean_git", return_value=False)
     def test_state_never_running_on_git_failure(self, mock_clean):
         state = {"tasks": {}, "version": 1}
         task = {
@@ -96,7 +94,7 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "dir": self.tmpdir,
             "prompt": "do something",
         }
-        tl.run_task(task, 0, state, {})
+        cli.run_task(task, 0, state, {})
         self.assertNotEqual(state["tasks"]["0"]["status"], "running")
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
 
