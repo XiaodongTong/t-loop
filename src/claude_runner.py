@@ -45,12 +45,21 @@ def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log
         else:
             attempt_cmd = cmd
 
-        result = subprocess.run(
-            attempt_cmd,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-        )
+        print(f"  Running claude (attempt {attempt}/{max_retries})...")
+        try:
+            result = subprocess.run(
+                attempt_cmd,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"{YELLOW}  Claude timed out after 300s (attempt {attempt}/{max_retries}){RESET}")
+            if attempt >= max_retries:
+                print(f"{RED}  Max retries reached. Giving up.{RESET}")
+                return False
+            continue
 
         if log_file:
             with open(log_file, "a") as log:
