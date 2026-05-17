@@ -31,6 +31,8 @@ Task file format (~/.tloop/tasks.yaml):
       # OR:
       prompt_file: ./prompts/my-task.md
       branch: true           # true=auto, "custom/name", false=skip
+      use: cybervisor        # cybervisor (default) or claude
+      max_rounds: 5          # only for use: claude
 
   Each task runs in the specified directory. Completed tasks are
   archived to ~/.tloop/archive/ after each run cycle.
