@@ -49,6 +49,8 @@ tasks:
 | `prompt_file` | prompt 文件路径（解析顺序：绝对路径 → `~/.tloop/` 相对 → 任务目录相对） |
 | `model` | 覆盖该任务的模型 |
 | `branch` | `true`（自动 `feature-YYYYMMDD-NNN`）、`"custom/name"`、或 `false`（跳过分支） |
+| `use` | 任务执行器：`cybervisor`（默认，多阶段复杂任务）或 `claude`（定向任务，支持循环） |
+| `max_rounds` | `use: claude` 时生效，最大迭代次数（默认 5）；到达上限前未收到 `<promise>COMPLETE</promise>` 信号则任务失败 |
 
 ## 用法
 
@@ -64,6 +66,37 @@ tloop archive              # 列出归档记录
 tloop archive --latest     # 显示最近一次归档详情
 tloop migrate              # 迁移旧的项目本地数据到 ~/.tloop/
 ```
+
+## 执行器
+
+t-loop 支持两种任务执行器，通过 `use` 字段选择：
+
+| 执行器 | 说明 | 适用场景 |
+|--------|------|----------|
+| `cybervisor` | 默认，执行 `cybervisor run`，适合复杂多阶段任务 | 大型重构、多步骤分析 |
+| `claude` | 执行 `claude -p --dangerously-skip-permissions`，支持循环迭代 | 定向 bug 修复、明确目标的任务 |
+
+### ClaudeRunner 循环机制
+
+`use: claude` 时，任务以多轮迭代方式执行：
+
+1. 每轮启动一次 `claude -p --dangerously-skip-permissions`，传入 prompt
+2. 如果输出包含 `<promise>COMPLETE</promise>`，立即结束并标记成功
+3. 否则等待 2 秒，继续下一轮，直到达到 `max_rounds`（默认 5）
+4. `max_rounds` 用尽仍未检测到完成信号，任务标记失败
+
+使用示例：
+
+```yaml
+tasks:
+  - name: 修复空指针 bug
+    dir: ~/proj
+    use: claude
+    max_rounds: 3
+    prompt_file: bugfix.md
+```
+
+在 prompt 文件中加入 `<promise>COMPLETE</promise>` 即可让 Claude 主动退出循环。
 
 ## 工作原理
 

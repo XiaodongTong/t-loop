@@ -814,6 +814,125 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
 
 
+class RunnerSelectionTests(unittest.TestCase):
+    """T5.11: Tests for runner selection based on task 'use' field."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        _init_git_repo(self.tmpdir)
+        self.home = Path(tempfile.mkdtemp()) / "tloop"
+        self.home.mkdir(parents=True)
+        (self.home / "logs").mkdir()
+        (self.home / "archive").mkdir()
+        self.patches = [
+            patch.object(config, "TLOOP_HOME", self.home),
+            patch.object(config, "TASKS_FILE", self.home / "tasks.yaml"),
+            patch.object(config, "STATE_FILE", self.home / "state.json"),
+            patch.object(config, "LOGS_DIR", self.home / "logs"),
+            patch.object(config, "ARCHIVE_DIR", self.home / "archive"),
+        ]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+
+    @patch.object(task_mod, "ensure_clean_git", return_value=True)
+    @patch.object(task_mod, "create_task_branch", return_value=True)
+    @patch("runner.claude.subprocess.Popen")
+    def test_use_claude_selects_claude_runner(self, mock_popen, mock_branch, mock_clean):
+        mock_proc = MagicMock()
+        mock_proc.stdout = iter(["<promise>COMPLETE</promise>\n"])
+        mock_proc.returncode = 0
+        mock_proc.stdin = MagicMock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+
+        state = {"tasks": {}, "version": 1}
+        task = {
+            "name": "test claude task",
+            "dir": self.tmpdir,
+            "prompt": "do something",
+            "use": "claude",
+            "branch": "feat/test",
+        }
+        result = task_mod.run_task(task, 0, state)
+        self.assertTrue(result)
+        self.assertEqual(state["tasks"]["0"]["status"], "done")
+
+    @patch.object(task_mod, "ensure_clean_git", return_value=True)
+    @patch.object(task_mod, "create_task_branch", return_value=True)
+    @patch("runner.claude.subprocess.Popen")
+    def test_use_claude_max_rounds_respected(self, mock_popen, mock_branch, mock_clean):
+        mock_proc = MagicMock()
+        mock_proc.stdout = iter(["no completion\n"])
+        mock_proc.returncode = 0
+        mock_proc.stdin = MagicMock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+
+        state = {"tasks": {}, "version": 1}
+        task = {
+            "name": "test claude task",
+            "dir": self.tmpdir,
+            "prompt": "do something",
+            "use": "claude",
+            "max_rounds": 3,
+            "branch": "feat/test",
+        }
+        with patch("time.sleep"):
+            result = task_mod.run_task(task, 0, state)
+        self.assertFalse(result)
+        self.assertEqual(state["tasks"]["0"]["status"], "failed")
+        self.assertEqual(mock_popen.call_count, 3)
+
+    @patch.object(task_mod, "ensure_clean_git", return_value=True)
+    @patch.object(task_mod, "create_task_branch", return_value=True)
+    @patch("runner.cybervisor.subprocess.Popen")
+    def test_use_cybervisor_selects_cybervisor_runner(self, mock_popen, mock_branch, mock_clean):
+        mock_proc = MagicMock()
+        mock_proc.stdout = iter(["output\n"])
+        mock_proc.returncode = 0
+        mock_proc.stdin = MagicMock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+
+        state = {"tasks": {}, "version": 1}
+        task = {
+            "name": "test cybervisor task",
+            "dir": self.tmpdir,
+            "prompt": "do something",
+            "use": "cybervisor",
+            "branch": "feat/test",
+        }
+        result = task_mod.run_task(task, 0, state)
+        self.assertTrue(result)
+        self.assertEqual(state["tasks"]["0"]["status"], "done")
+
+    @patch.object(task_mod, "ensure_clean_git", return_value=True)
+    @patch.object(task_mod, "create_task_branch", return_value=True)
+    @patch("runner.cybervisor.subprocess.Popen")
+    def test_missing_use_field_defaults_to_cybervisor(self, mock_popen, mock_branch, mock_clean):
+        mock_proc = MagicMock()
+        mock_proc.stdout = iter(["output\n"])
+        mock_proc.returncode = 0
+        mock_proc.stdin = MagicMock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+
+        state = {"tasks": {}, "version": 1}
+        task = {
+            "name": "test default task",
+            "dir": self.tmpdir,
+            "prompt": "do something",
+            "branch": "feat/test",
+        }
+        result = task_mod.run_task(task, 0, state)
+        self.assertTrue(result)
+        self.assertEqual(state["tasks"]["0"]["status"], "done")
+
+
 class EditorSelectionTests(unittest.TestCase):
     """Tests for editor selection and persistence in cmd_edit."""
 

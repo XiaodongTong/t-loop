@@ -7,6 +7,7 @@ from pathlib import Path
 import config
 from git_ops import ensure_clean_git, create_task_branch
 from runner.cybervisor import CybervisorRunner
+from runner.claude import ClaudeRunner
 from state import save_state
 
 
@@ -100,12 +101,24 @@ def run_task(task, index, state):
     try:
         with open(log_file, "a") as log:
             log.write(f"Started: {started}\n")
-            log.write(f"Command: cybervisor run < {'<prompt_file>' if resolved_pf else '<prompt>'}\n")
-            log.write("-" * 60 + "\n\n")
             log.flush()
 
-        runner = CybervisorRunner()
-        returncode = runner.run(prompt, dir_path, log_file=log_file, prompt_file=resolved_pf)
+            runner_name = task.get("use", "cybervisor")
+            if runner_name == "claude":
+                runner = ClaudeRunner()
+                max_rounds = task.get("max_rounds", 5)
+                log.write(f"Runner: ClaudeRunner (max_rounds={max_rounds})\n")
+                log.write(f"Command: claude -p --dangerously-skip-permissions\n")
+                log.write("-" * 60 + "\n\n")
+                log.flush()
+                returncode = runner.run(prompt, dir_path, log_file=log_file, max_rounds=max_rounds)
+            else:
+                runner = CybervisorRunner()
+                log.write(f"Runner: CybervisorRunner\n")
+                log.write(f"Command: cybervisor run < {'<prompt_file>' if resolved_pf else '<prompt>'}\n")
+                log.write("-" * 60 + "\n\n")
+                log.flush()
+                returncode = runner.run(prompt, dir_path, log_file=log_file, prompt_file=resolved_pf)
 
         if returncode == 0:
             state["tasks"][str(index)] = {
