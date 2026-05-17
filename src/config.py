@@ -39,5 +39,16 @@ def load_config():
         print(f"{RED}Error: {TASKS_FILE} not found{RESET}")
         print(f"Run tloop run to initialize, then edit tasks.yaml.")
         sys.exit(1)
-    with open(TASKS_FILE) as f:
-        return yaml.safe_load(f) or {}
+    try:
+        with open(TASKS_FILE) as f:
+            return yaml.safe_load(f) or {}
+    except yaml.YAMLError as e:
+        location = ""
+        if hasattr(e, "problem_mark") and e.problem_mark:
+            mark = e.problem_mark
+            location = f" (line {mark.line + 1}, column {mark.column + 1})"
+        print(f"{RED}Error: {TASKS_FILE} 解析失败{location}{RESET}")
+        if hasattr(e, "problem") and e.problem:
+            print(f"  {e.problem}")
+        print("请检查 YAML 格式，常见问题：含冒号/特殊字符的值需要用引号包裹。")
+        sys.exit(1)
