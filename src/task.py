@@ -111,7 +111,7 @@ def run_task(task, index, state):
                 log.write(f"Command: claude -p --dangerously-skip-permissions\n")
                 log.write("-" * 60 + "\n\n")
                 log.flush()
-                returncode = runner.run(prompt, dir_path, log_file=log_file, max_rounds=max_rounds)
+                returncode = runner.run(prompt, dir_path, log_file=log_file, max_rounds=max_rounds, prompt_file=resolved_pf)
             else:
                 runner = CybervisorRunner()
                 log.write(f"Runner: CybervisorRunner\n")

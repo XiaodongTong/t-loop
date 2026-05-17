@@ -5,9 +5,19 @@ import time
 
 from runner import Runner
 
+COMPLETION_SUFFIX = (
+
+    "\n\nWhen you have fully completed all the requested work, "
+    "output the following on its own line to signal completion:\n"
+    "<promise>COMPLETE</promise>\n"
+    "Do NOT output this unless you have finished everything. "
+    "If there is still work to do, end your response normally — "
+    "another iteration will pick up where you left off."
+)
+
 
 class ClaudeRunner(Runner):
-    def run(self, prompt, cwd, log_file=None, max_rounds=5):
+    def run(self, prompt, cwd, log_file=None, max_rounds=5, prompt_file=None):
         """
         Run Claude Code in a loop with configurable round limit.
 
@@ -16,10 +26,13 @@ class ClaudeRunner(Runner):
             cwd: Working directory for the task
             log_file: Optional path to log file
             max_rounds: Maximum number of loop iterations (default 5)
+            prompt_file: Optional path to prompt file (used as stdin like CybervisorRunner)
 
         Returns:
             0 on success (completion signal detected), non-zero on failure
         """
+        enriched_prompt = prompt + COMPLETION_SUFFIX
+
         log = open(log_file, "a") if log_file else open("/dev/null", "a")
         try:
             for round_num in range(1, max_rounds + 1):
@@ -42,7 +55,12 @@ class ClaudeRunner(Runner):
                 )
 
                 output_parts = []
-                process.stdin.write(prompt)
+                if prompt_file:
+                    with open(prompt_file, "r") as f:
+                        process.stdin.write(f.read())
+                    process.stdin.write(COMPLETION_SUFFIX)
+                else:
+                    process.stdin.write(enriched_prompt)
                 process.stdin.close()
 
                 for line in process.stdout:
