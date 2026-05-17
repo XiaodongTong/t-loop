@@ -28,12 +28,11 @@ def resolve_prompt_file(prompt_file, dir_path):
     return Path(prompt_file)
 
 
-def run_task(task, index, state, defaults):
+def run_task(task, index, state):
     name = task.get("name", f"Task {index + 1}")
-    dir_path = expand_dir(task.get("dir", defaults.get("dir", ".")))
+    dir_path = expand_dir(task.get("dir", "."))
     prompt = task.get("prompt", "")
     prompt_file = task.get("prompt_file")
-    model = task.get("model", defaults.get("model"))
     branch_config = task.get("branch", True)
 
     if not os.path.isdir(dir_path):
@@ -46,10 +45,11 @@ def run_task(task, index, state, defaults):
         save_state(state)
         return False
 
+    resolved_pf = None
     if prompt_file:
-        pf = resolve_prompt_file(prompt_file, dir_path)
-        if pf.exists():
-            prompt = pf.read_text()
+        resolved_pf = resolve_prompt_file(prompt_file, dir_path)
+        if resolved_pf.exists():
+            prompt = resolved_pf.read_text()
         else:
             print(f"{config.RED}  Prompt file not found: {prompt_file}{config.RESET}")
             return False
@@ -100,12 +100,12 @@ def run_task(task, index, state, defaults):
     try:
         with open(log_file, "a") as log:
             log.write(f"Started: {started}\n")
-            log.write(f"Command: cybervisor run <prompt>\n")
+            log.write(f"Command: cybervisor run < {'<prompt_file>' if resolved_pf else '<prompt>'}\n")
             log.write("-" * 60 + "\n\n")
             log.flush()
 
         runner = CybervisorRunner()
-        returncode = runner.run(prompt, dir_path, model=model, log_file=log_file)
+        returncode = runner.run(prompt, dir_path, log_file=log_file, prompt_file=resolved_pf)
 
         if returncode == 0:
             state["tasks"][str(index)] = {

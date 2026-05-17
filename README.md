@@ -5,8 +5,8 @@
 ## 安装
 
 ```bash
-pip install t-loop            # 从 PyPI 安装
-pip install -e .              # 本地开发安装
+pip install tloop-cli           # 从 PyPI 安装
+pip install -e .                # 本地开发安装
 ```
 
 需要 Python >=3.9，唯一外部依赖：`pyyaml`。

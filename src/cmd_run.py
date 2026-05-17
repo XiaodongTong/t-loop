@@ -24,7 +24,6 @@ def handle(args):
 
     cfg = load_config()
     tasks = cfg.get("tasks", [])
-    defaults = cfg.get("defaults", {})
 
     if not tasks:
         print("No tasks defined in tasks.yaml")
@@ -71,7 +70,7 @@ def handle(args):
                 continue
 
         ran_any = True
-        success = run_task(tasks[i], i, state, defaults)
+        success = run_task(tasks[i], i, state)
         if not success and not args.continue_on_fail:
             print(f"\n{config.YELLOW}Stopped. Use -c to continue after failures.{config.RESET}")
             break

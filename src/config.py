@@ -8,6 +8,7 @@ import yaml
 TLOOP_HOME = Path.home() / ".tloop"
 TASKS_FILE = TLOOP_HOME / "tasks.yaml"
 STATE_FILE = TLOOP_HOME / "state.json"
+SETTINGS_FILE = TLOOP_HOME / "settings.json"
 LOGS_DIR = TLOOP_HOME / "logs"
 ARCHIVE_DIR = TLOOP_HOME / "archive"
 
@@ -18,34 +19,7 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-SAMPLE_TASKS_YAML = """\
-# t-loop tasks.yaml
-# Define your Claude Code automation tasks here.
-#
-# Location: ~/.tloop/tasks.yaml
-#
-# Each task runs "cybervisor run <prompt>" in the specified directory.
-# Completed tasks are automatically archived after each run cycle.
-# View archives with: tloop archive
-#
-# prompt_file paths resolve in this order:
-#   1. Absolute path (after ~ expansion)
-#   2. Relative to ~/.tloop/
-#   3. Relative to the task's dir
-
-defaults:
-  # model: opus
-
-tasks: []
-  # - name: My first task
-  #   dir: ~/projects/my-project
-  #   prompt: |
-  #     Describe what Claude should do here.
-  #
-  # - name: Task with prompt file
-  #   dir: ~/projects/my-project
-  #   prompt_file: ./prompts/my-task.md
-"""
+SAMPLE_TASKS_YAML = "# Run 'tloop edit --help' for details on how to write this file.\ntasks: []\n"
 
 
 def ensure_tloop_home():

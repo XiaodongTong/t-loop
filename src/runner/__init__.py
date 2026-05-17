@@ -5,6 +5,6 @@ from abc import ABC, abstractmethod
 
 class Runner(ABC):
     @abstractmethod
-    def run(self, prompt, cwd, model=None, log_file=None):
+    def run(self, prompt, cwd, log_file=None):
         """Run a task. Returns exit code (0=success)."""
         ...

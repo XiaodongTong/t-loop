@@ -15,6 +15,7 @@ import config
 import state as state_mod
 import task as task_mod
 import cmd_run
+import cmd_edit
 
 
 def _init_git_repo(tmpdir):
@@ -44,6 +45,7 @@ def _setup_home(tmp_path):
         patch.object(config, "TLOOP_HOME", home),
         patch.object(config, "TASKS_FILE", home / "tasks.yaml"),
         patch.object(config, "STATE_FILE", home / "state.json"),
+        patch.object(config, "SETTINGS_FILE", home / "settings.json"),
         patch.object(config, "LOGS_DIR", home / "logs"),
         patch.object(config, "ARCHIVE_DIR", home / "archive"),
     ]
@@ -60,6 +62,7 @@ class EnsureTloopHomeTests(unittest.TestCase):
             patch.object(config, "TLOOP_HOME", self.home),
             patch.object(config, "TASKS_FILE", self.home / "tasks.yaml"),
             patch.object(config, "STATE_FILE", self.home / "state.json"),
+            patch.object(config, "SETTINGS_FILE", self.home / "settings.json"),
             patch.object(config, "LOGS_DIR", self.home / "logs"),
             patch.object(config, "ARCHIVE_DIR", self.home / "archive"),
         ]
@@ -86,7 +89,7 @@ class EnsureTloopHomeTests(unittest.TestCase):
         self.assertTrue(tasks_file.exists())
         content = tasks_file.read_text()
         self.assertIn("tasks:", content)
-        self.assertIn("defaults:", content)
+        self.assertTrue(content.startswith("# Run 'tloop edit --help'"))
 
     def test_idempotent_no_exit_when_tasks_exist(self):
         self.home.mkdir(parents=True, exist_ok=True)
@@ -765,7 +768,7 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "prompt": "do something",
             "branch": "feat/test",
         }
-        result = task_mod.run_task(task, 0, state, {})
+        result = task_mod.run_task(task, 0, state)
         self.assertTrue(result)
         mock_clean.assert_called_once()
         mock_branch.assert_called_once_with(self.tmpdir, "feat/test")
@@ -778,7 +781,7 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "dir": self.tmpdir,
             "prompt": "do something",
         }
-        result = task_mod.run_task(task, 0, state, {})
+        result = task_mod.run_task(task, 0, state)
         self.assertFalse(result)
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
         self.assertIn("auto-commit", state["tasks"]["0"]["error"])
@@ -793,7 +796,7 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "prompt": "do something",
             "branch": True,
         }
-        result = task_mod.run_task(task, 0, state, {})
+        result = task_mod.run_task(task, 0, state)
         self.assertFalse(result)
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
         self.assertIn("branch", state["tasks"]["0"]["error"])
@@ -806,9 +809,62 @@ class RunTaskGitIntegrationTests(unittest.TestCase):
             "dir": self.tmpdir,
             "prompt": "do something",
         }
-        task_mod.run_task(task, 0, state, {})
+        task_mod.run_task(task, 0, state)
         self.assertNotEqual(state["tasks"]["0"]["status"], "running")
         self.assertEqual(state["tasks"]["0"]["status"], "failed")
+
+
+class EditorSelectionTests(unittest.TestCase):
+    """Tests for editor selection and persistence in cmd_edit."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.home = Path(self.tmpdir) / "tloop"
+        self.home.mkdir(parents=True)
+        self.patches = [
+            patch.object(config, "TLOOP_HOME", self.home),
+            patch.object(config, "SETTINGS_FILE", self.home / "settings.json"),
+        ]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+
+    def test_cli_editor_overrides_settings(self):
+        cmd_edit._save_settings({"editor": "vim"})
+        result = cmd_edit._resolve_editor("code")
+        self.assertEqual(result, "code")
+
+    def test_saved_editor_used_when_no_cli_override(self):
+        cmd_edit._save_settings({"editor": "code"})
+        result = cmd_edit._resolve_editor()
+        self.assertEqual(result, "code")
+
+    def test_prompt_on_first_run(self):
+        with patch("builtins.input", side_effect=["1"]):
+            with patch.object(cmd_edit, "KNOWN_EDITORS", {"code": ("VS Code", "code")}):
+                with patch("shutil.which", return_value="/usr/local/bin/code"):
+                    result = cmd_edit._resolve_editor()
+        self.assertEqual(result, "code")
+        settings = json.loads((self.home / "settings.json").read_text())
+        self.assertEqual(settings["editor"], "code")
+
+    def test_custom_editor_via_prompt(self):
+        with patch("builtins.input", side_effect=["2", "subl"]):
+            with patch.object(cmd_edit, "KNOWN_EDITORS", {"code": ("VS Code", "code")}):
+                with patch("shutil.which", return_value="/usr/local/bin/code"):
+                    result = cmd_edit._resolve_editor()
+        self.assertEqual(result, "subl")
+
+    def test_corrupt_settings_file_triggers_prompt(self):
+        (self.home / "settings.json").write_text("not json")
+        with patch("builtins.input", side_effect=["1"]):
+            with patch.object(cmd_edit, "KNOWN_EDITORS", {"code": ("VS Code", "code")}):
+                with patch("shutil.which", return_value="/usr/local/bin/code"):
+                    result = cmd_edit._resolve_editor()
+        self.assertEqual(result, "code")
 
 
 if __name__ == "__main__":
