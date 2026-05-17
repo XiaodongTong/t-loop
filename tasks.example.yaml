@@ -1,0 +1,31 @@
+# t-loop tasks.yaml
+# Define your Claude Code automation tasks here.
+#
+# Location: ~/.tloop/tasks.yaml
+#
+# Each task runs "cybervisor run <prompt>" in the specified directory.
+# Completed tasks are automatically archived after each run cycle.
+# View archives with: t-loop --archive
+#
+# prompt_file paths resolve in this order:
+#   1. Absolute path (after ~ expansion)
+#   2. Relative to ~/.tloop/
+#   3. Relative to the task's dir
+
+defaults:
+  # model: opus
+
+tasks: []
+  # - name: My first task
+  #   dir: ~/projects/my-project
+  #   prompt: |
+  #     Describe what Claude should do here.
+  #
+  # - name: Task with prompt file
+  #   dir: ~/projects/my-project
+  #   prompt_file: ./prompts/my-task.md
+
+  # Branch field options:
+  #   omitted / true  → auto-generate feature-YYYYMMDD-NNN
+  #   "feat/name"     → use specified name (append -NNN if exists)
+  #   false           → skip branch creation, work on current branch

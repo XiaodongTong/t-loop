@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "t-loop"
+version = "0.3.0"
+description = "Automated Claude Code task runner"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+t-loop = "main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["cli", "claude_runner", "git_ops"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]

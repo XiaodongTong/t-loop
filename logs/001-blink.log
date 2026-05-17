@@ -1,0 +1,15 @@
+Task: blink
+Directory: /Users/russell/workingspace/blink
+------------------------------------------------------------
+
+Started: 2026-05-17T08:10:10.113853
+Command: cybervisor run <prompt>
+------------------------------------------------------------
+
+INFO | cybervisor CLI 0.19.0
+INFO | Objective source: positional prompt (stage prompt_template values remain active).
+INFO | Using runtime agent 'claude'.
+INFO | [Design Delivery] Running attempt 1
+INFO | [Design Delivery][claude] Adapter result: lifecycle=prepared, outcome=started
+INFO | [Design Delivery][claude] Adapter result: lifecycle=running, outcome=started
+INFO | [Design Delivery][claude] session started (init, model=glm-5.1, cwd=/Users/russell/workingspace/blink)

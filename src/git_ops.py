@@ -3,7 +3,7 @@
 import subprocess
 from datetime import datetime
 
-from tloop.claude_runner import run_claude
+from claude_runner import run_claude
 
 GREEN = "\033[92m"
 RED = "\033[91m"

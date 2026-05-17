@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-from tloop.git_ops import (
+from git_ops import (
     branch_exists,
     create_task_branch,
     ensure_clean_git,
@@ -102,7 +102,7 @@ class EnsureCleanGitTests(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp()
         _init_git_repo(self.tmpdir)
 
-    @patch("tloop.git_ops.run_claude")
+    @patch("git_ops.run_claude")
     def test_clean_repo_skips_commit(self, mock_claude):
         result = ensure_clean_git(self.tmpdir, "test-task")
         self.assertTrue(result)
@@ -113,17 +113,17 @@ class EnsureCleanGitTests(unittest.TestCase):
         result = ensure_clean_git(non_git, "test-task")
         self.assertTrue(result)
 
-    @patch("tloop.git_ops.run_claude")
-    @patch("tloop.git_ops.is_git_clean")
-    @patch("tloop.git_ops.has_staged_changes", return_value=True)
+    @patch("git_ops.run_claude")
+    @patch("git_ops.is_git_clean")
+    @patch("git_ops.has_staged_changes", return_value=True)
     def test_dirty_repo_triggers_staged_then_workdir(self, mock_staged, mock_clean, mock_claude):
         mock_clean.side_effect = [False, False, True]
         result = ensure_clean_git(self.tmpdir, "test-task")
         self.assertTrue(result)
         self.assertEqual(mock_claude.call_count, 2)
 
-    @patch("tloop.git_ops.run_claude")
-    @patch("tloop.git_ops.is_git_clean")
+    @patch("git_ops.run_claude")
+    @patch("git_ops.is_git_clean")
     def test_uncleanable_repo_returns_false(self, mock_clean, mock_claude):
         Path(self.tmpdir, "dirty.txt").write_text("dirty")
         mock_clean.return_value = False
