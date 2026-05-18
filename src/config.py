@@ -19,7 +19,9 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-SAMPLE_TASKS_YAML = "# Run 'tloop edit --help' for details on how to write this file.\ntasks: []\n"
+TASKS_YAML_HEADER = "# Run 'tloop edit --help' for details on how to write this file.\n"
+
+SAMPLE_TASKS_YAML = TASKS_YAML_HEADER + "tasks: []\n"
 
 
 def ensure_tloop_home():

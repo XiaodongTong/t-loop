@@ -87,8 +87,9 @@ def archive_completed_tasks(config_data, state):
 
     remaining_config = dict(config_data)
     remaining_config["tasks"] = remaining
+    content = yaml.dump(remaining_config, default_flow_style=False, allow_unicode=True)
     with open(config.TASKS_FILE, "w") as f:
-        yaml.dump(remaining_config, f, default_flow_style=False, allow_unicode=True)
+        f.write(config.TASKS_YAML_HEADER + content)
 
     save_state({"tasks": {}, "version": 1})
 

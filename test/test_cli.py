@@ -11,6 +11,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import yaml
+
 import config
 import state as state_mod
 import task as task_mod
@@ -659,6 +661,24 @@ class AllDoneArchiveTests(unittest.TestCase):
         remaining = yaml.safe_load(self.tasks_file.read_text())
         self.assertEqual(remaining["tasks"], [])
 
+    def test_header_comment_preserved_after_archive(self):
+        import yaml
+        config_state = {
+            "tasks": [
+                {"name": "A", "prompt": "a"},
+                {"name": "B", "prompt": "b"},
+            ]
+        }
+        state = {
+            "tasks": {
+                "0": {"status": "done", "finished_at": "t1"},
+                "1": {"status": "failed", "error": "err"},
+            }
+        }
+        state_mod.archive_completed_tasks(config_state, state)
+        content = self.tasks_file.read_text()
+        self.assertTrue(content.startswith("# Run 'tloop edit --help'"))
+
         final_state = json.loads(self.state_file.read_text())
         self.assertEqual(final_state["tasks"], {})
 
@@ -931,6 +951,94 @@ class RunnerSelectionTests(unittest.TestCase):
         result = task_mod.run_task(task, 0, state)
         self.assertTrue(result)
         self.assertEqual(state["tasks"]["0"]["status"], "done")
+
+
+class AddTaskTests(unittest.TestCase):
+    """Tests for _add_task() appending all fields to tasks.yaml."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.home = Path(self.tmpdir) / "tloop"
+        self.home.mkdir(parents=True)
+        self.tasks_file = self.home / "tasks.yaml"
+        self.patches = [
+            patch.object(config, "TLOOP_HOME", self.home),
+            patch.object(config, "TASKS_FILE", self.tasks_file),
+        ]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+
+    def test_creates_tasks_yaml_if_missing(self):
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/foo")
+        self.assertTrue(self.tasks_file.exists())
+        data = yaml.safe_load(self.tasks_file.read_text())
+        self.assertEqual(len(data["tasks"]), 1)
+
+    def test_appends_to_existing_tasks(self):
+        self.tasks_file.write_text(yaml.dump({
+            "tasks": [{"name": "Existing", "dir": ".", "prompt": "old"}]
+        }))
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/bar")
+        data = yaml.safe_load(self.tasks_file.read_text())
+        self.assertEqual(len(data["tasks"]), 2)
+        self.assertEqual(data["tasks"][1]["name"], "Task 2")
+
+    def test_all_fields_present(self):
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/myproj")
+        data = yaml.safe_load(self.tasks_file.read_text())
+        task = data["tasks"][0]
+        self.assertEqual(task["name"], "Task 1")
+        self.assertEqual(task["dir"], "~/projects/myproj")
+        self.assertEqual(task["prompt"], "")
+        self.assertTrue(task["branch"])
+        self.assertEqual(task["use"], "cybervisor")
+        self.assertEqual(task["max_rounds"], 5)
+
+    def test_prompt_file_comment_present(self):
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/myproj")
+        content = self.tasks_file.read_text()
+        self.assertIn("# prompt_file:", content)
+
+    def test_header_comment_preserved_on_add(self):
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/foo")
+        content = self.tasks_file.read_text()
+        self.assertTrue(content.startswith("# Run 'tloop edit --help'"))
+
+    def test_header_comment_preserved_on_append(self):
+        self.tasks_file.write_text(config.SAMPLE_TASKS_YAML.replace("tasks: []", "tasks:\n  - name: Existing\n    dir: .\n    prompt: old\n"))
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/bar")
+        content = self.tasks_file.read_text()
+        self.assertTrue(content.startswith("# Run 'tloop edit --help'"))
+
+    def test_task_numbering_increments(self):
+        self.tasks_file.write_text(yaml.dump({
+            "tasks": [{"name": "Task 1", "dir": ".", "prompt": ""}]
+        }))
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/second")
+        data = yaml.safe_load(self.tasks_file.read_text())
+        self.assertEqual(data["tasks"][1]["name"], "Task 2")
+
+    def test_preserves_existing_file_structure(self):
+        self.tasks_file.write_text(yaml.dump({
+            "custom_key": "value",
+            "tasks": [{"name": "Existing", "dir": ".", "prompt": "hi"}]
+        }))
+        with patch("builtins.print"):
+            cmd_edit._add_task("~/projects/new")
+        data = yaml.safe_load(self.tasks_file.read_text())
+        self.assertEqual(data["custom_key"], "value")
+        self.assertEqual(len(data["tasks"]), 2)
 
 
 class EditorSelectionTests(unittest.TestCase):

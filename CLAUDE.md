@@ -33,7 +33,7 @@ main.py → cmd_run.py → task.py → git_ops.py → claude_runner.py
 - **state.py** — `load_state()`, `save_state()`, `show_status()`, `archive_completed_tasks()`, `show_archives()`.
 - **task.py** — `run_task()`, `resolve_prompt_file()`, `expand_dir()`. Uses `CybervisorRunner` from the runner package.
 - **cmd_run.py** — `tloop run` subcommand: task loop, status display, archiving.
-- **cmd_edit.py** — `tloop edit` subcommand: opens tasks.yaml in `$EDITOR`.
+- **cmd_edit.py** — `tloop edit` subcommand: opens tasks.yaml in `$EDITOR`. Accepts optional `path` arg to auto-append a task entry before opening editor.
 - **cmd_migrate.py** — `tloop migrate` subcommand: migrates old data to `~/.tloop/`.
 - **cmd_archive.py** — `tloop archive` subcommand: view archived runs.
 - **git_ops.py** — Pre-task git safety: auto-commit dirty working trees (via `claude` CLI), branch creation with collision-safe naming (`feature-YYYYMMDD-NNN`).

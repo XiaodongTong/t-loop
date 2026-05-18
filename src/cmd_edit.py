@@ -1,10 +1,12 @@
-"""tloop edit — open ~/.tloop/tasks.yaml in editor."""
+"""tloop edit — open ~/.tloop/tasks.yaml in editor, optionally add a task."""
 
 import argparse
 import json
 import os
 import shutil
 import subprocess
+
+import yaml
 
 import config
 
@@ -97,11 +99,50 @@ def add_parser(subparsers):
         description=EDIT_HELP,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    p.add_argument("path", nargs="?", help="Add a task with this dir and open the file")
     p.add_argument("--editor", help="Override editor command for this session")
     p.set_defaults(func=handle)
 
 
+def _add_task(path):
+    """Append a minimal task with dir=path to tasks.yaml."""
+    config.TLOOP_HOME.mkdir(exist_ok=True)
+    if not config.TASKS_FILE.exists():
+        config.TASKS_FILE.write_text(config.SAMPLE_TASKS_YAML)
+
+    try:
+        data = yaml.safe_load(config.TASKS_FILE.read_text()) or {}
+    except yaml.YAMLError:
+        data = {}
+
+    tasks = data.get("tasks") or []
+    new_task = {
+        "name": f"Task {len(tasks) + 1}",
+        "dir": str(path),
+        "prompt": "",
+        "branch": True,
+        "use": "cybervisor",
+        "max_rounds": 5,
+    }
+    tasks.append(new_task)
+    data["tasks"] = tasks
+
+    content = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    # Insert commented prompt_file after the new task's prompt line
+    idx = content.rfind("prompt: ''")
+    if idx != -1:
+        newline_pos = content.index("\n", idx)
+        content = content[:newline_pos + 1] + "      # prompt_file: ./prompts/task.md\n" + content[newline_pos + 1:]
+
+    config.TASKS_FILE.write_text(config.TASKS_YAML_HEADER + content)
+    print(f"{config.GREEN}Added task '{new_task['name']}' with dir={path}{config.RESET}")
+
+
 def handle(args):
+    path = getattr(args, "path", None)
+    if path:
+        _add_task(path)
+
     config.TLOOP_HOME.mkdir(exist_ok=True)
     if not config.TASKS_FILE.exists():
         config.TASKS_FILE.write_text(config.SAMPLE_TASKS_YAML)

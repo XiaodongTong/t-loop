@@ -62,6 +62,7 @@ tloop run --confirm        # 每个任务前确认
 tloop run -c               # 失败后继续执行
 tloop run --reset          # 重置所有任务为待执行
 tloop edit                 # 用 $EDITOR 打开 tasks.yaml
+tloop edit ~/proj/xxx      # 快速添加一条完整任务（含 dir/branch/use/max_rounds），再打开编辑器
 tloop archive              # 列出归档记录
 tloop archive --latest     # 显示最近一次归档详情
 tloop migrate              # 迁移旧的项目本地数据到 ~/.tloop/

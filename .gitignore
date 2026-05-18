@@ -6,3 +6,4 @@ build/
 .cybervisor/
 cybervisor.yaml
 .claude/settings.json
+uv.lock
