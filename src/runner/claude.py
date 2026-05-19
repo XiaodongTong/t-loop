@@ -71,10 +71,17 @@ class ClaudeRunner(Runner):
                 output_parts = []
                 if prompt_file:
                     with open(prompt_file, "r") as f:
-                        process.stdin.write(constitution_content + f.read())
-                    process.stdin.write(COMPLETION_SUFFIX)
+                        final_input = constitution_content + f.read() + COMPLETION_SUFFIX
                 else:
-                    process.stdin.write(constitution_content + enriched_prompt)
+                    final_input = constitution_content + enriched_prompt
+
+                print(f"\n{'─'*60}")
+                print(" Input to Claude:")
+                print(f"{'─'*60}")
+                print(final_input)
+                print(f"{'─'*60}\n")
+
+                process.stdin.write(final_input)
                 process.stdin.close()
 
                 for line in process.stdout:

@@ -996,7 +996,7 @@ class AddTaskTests(unittest.TestCase):
         task = data["tasks"][0]
         self.assertEqual(task["name"], "Task 1")
         self.assertEqual(task["dir"], "~/projects/myproj")
-        self.assertEqual(task["prompt"], "")
+        self.assertIn("Describe what Claude should do.", task["prompt"])
         self.assertTrue(task["branch"])
         self.assertEqual(task["use"], "cybervisor")
         self.assertEqual(task["max_rounds"], 5)

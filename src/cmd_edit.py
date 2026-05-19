@@ -2,7 +2,7 @@
 
 import argparse
 import json
-import os
+import re
 import shutil
 import subprocess
 
@@ -109,7 +109,7 @@ def add_parser(subparsers):
 
 
 def _add_task(path):
-    """Append a minimal task with dir=path to tasks.yaml."""
+    """Append a guided task entry with dir=path to tasks.yaml."""
     config.TLOOP_HOME.mkdir(exist_ok=True)
     if not config.TASKS_FILE.exists():
         config.TASKS_FILE.write_text(config.SAMPLE_TASKS_YAML)
@@ -120,26 +120,38 @@ def _add_task(path):
         data = {}
 
     tasks = data.get("tasks") or []
-    new_task = {
-        "name": f"Task {len(tasks) + 1}",
-        "dir": str(path),
-        "prompt": "",
-        "branch": True,
-        "use": "cybervisor",
-        "max_rounds": 5,
-    }
-    tasks.append(new_task)
-    data["tasks"] = tasks
+    task_num = len(tasks) + 1
 
-    content = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
-    # Insert commented prompt_file after the new task's prompt line
-    idx = content.rfind("prompt: ''")
-    if idx != -1:
-        newline_pos = content.index("\n", idx)
-        content = content[:newline_pos + 1] + "      # prompt_file: ./prompts/task.md\n" + content[newline_pos + 1:]
+    raw = config.TASKS_FILE.read_text()
 
-    config.TASKS_FILE.write_text(config.TASKS_YAML_HEADER + content)
-    print(f"{config.GREEN}Added task '{new_task['name']}' with dir={path}{config.RESET}")
+    # Detect indentation of existing task entries (default: 2 spaces)
+    indent = "  "
+    m = re.search(r'^(\s*)- \w', raw, re.MULTILINE)
+    if m:
+        indent = m.group(1)
+    inner = indent + "  "
+
+    new_entry = (
+        f"{indent}- name: Task {task_num}\n"
+        f"{inner}dir: {path}\n"
+        f"{inner}prompt: |\n"
+        f"{inner}  Describe what Claude should do.\n"
+        f"{inner}# prompt or prompt_file\n"
+        f"{inner}# prompt_file: ./prompts/my-task.md\n"
+        f"{inner}branch: true           # true=auto, \"custom/name\", false=skip\n"
+        f"{inner}use: cybervisor        # cybervisor (default) or claude\n"
+        f"{inner}max_rounds: 5          # only for use: claude\n"
+    )
+
+    stripped = raw.rstrip()
+
+    if stripped.endswith("tasks: []"):
+        raw = stripped[: -len("tasks: []")] + "tasks:\n" + new_entry
+    else:
+        raw = stripped + "\n\n" + new_entry
+
+    config.TASKS_FILE.write_text(raw + "\n")
+    print(f"{config.GREEN}Added task 'Task {task_num}' with dir={path}{config.RESET}")
 
 
 def handle(args):
