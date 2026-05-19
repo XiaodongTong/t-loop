@@ -2,6 +2,7 @@
 
 import subprocess
 import time
+from pathlib import Path
 
 from runner import Runner
 
@@ -33,8 +34,21 @@ class ClaudeRunner(Runner):
         """
         enriched_prompt = prompt + COMPLETION_SUFFIX
 
+        constitution_path = Path(cwd) / "docs" / "tloop" / "constitution.md"
+        constitution_content = ""
+        if constitution_path.exists():
+            constitution_content = (
+                "<constitution>\n"
+                + constitution_path.read_text()
+                + "\n</constitution>\n\n"
+            )
+
         log = open(log_file, "a") if log_file else open("/dev/null", "a")
         try:
+            if constitution_content:
+                log.write("[Constitution loaded from docs/tloop/constitution.md]\n\n")
+                log.flush()
+
             for round_num in range(1, max_rounds + 1):
                 log.write(f"\n{'='*60}\n")
                 log.write(f"Round {round_num}/{max_rounds}\n")
@@ -57,10 +71,10 @@ class ClaudeRunner(Runner):
                 output_parts = []
                 if prompt_file:
                     with open(prompt_file, "r") as f:
-                        process.stdin.write(f.read())
+                        process.stdin.write(constitution_content + f.read())
                     process.stdin.write(COMPLETION_SUFFIX)
                 else:
-                    process.stdin.write(enriched_prompt)
+                    process.stdin.write(constitution_content + enriched_prompt)
                 process.stdin.close()
 
                 for line in process.stdout:

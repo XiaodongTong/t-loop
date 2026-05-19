@@ -19,7 +19,10 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-TASKS_YAML_HEADER = "# Run 'tloop edit --help' for details on how to write this file.\n"
+TASKS_YAML_HEADER = (
+    "# Run 'tloop edit --help' for details on how to write this file.\n"
+    "# Project-level AI instructions: ./docs/tloop/constitution.md (auto-loaded by tloop).\n"
+)
 
 SAMPLE_TASKS_YAML = TASKS_YAML_HEADER + "tasks: []\n"
 

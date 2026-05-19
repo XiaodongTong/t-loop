@@ -38,6 +38,10 @@ Task file format (~/.tloop/tasks.yaml):
 
   Each task runs in the specified directory. Completed tasks are
   archived to ~/.tloop/archive/ after each run cycle.
+
+  Project-level AI instructions can be placed in ./docs/tloop/constitution.md
+  within the project directory. If present, tloop will auto-load them as
+  constitutional rules when running tasks with the claude runner.
 """
 
 

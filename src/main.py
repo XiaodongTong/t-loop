@@ -9,6 +9,8 @@ def main():
     parser = argparse.ArgumentParser(
         prog="tloop",
         description="t-loop: Automated Claude Code task runner",
+        epilog="Tip: place project-level AI instructions in ./docs/tloop/constitution.md — tloop will auto-load them as constitutional rules.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("-v", "--version", action="version",
                         version=f"tloop {__version__}")
