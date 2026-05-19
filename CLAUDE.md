@@ -48,4 +48,14 @@ main.py → cmd_run.py → task.py → git_ops.py → claude_runner.py
 - `prompt` (inline) or `prompt_file` (resolved: absolute → `TLOOP_HOME`-relative → task-dir-relative)
 - `branch`: `true` = auto `feature-YYYYMMDD-NNN`, `"custom/name"` = use or append suffix, `false` = skip
 
+## Publishing Commands
+
+```bash
+rm -rf dist/                    # 清理旧版本打包文件
+python -m build                 # 构建 wheel 和 sdist
+python -m twine upload dist/*   # 上传至 PyPI
+```
+
+发布流程：版本升级 → commit → tag → push → build → upload。
+
 **Testing:** Tests patch `config.TLOOP_HOME`, `config.TASKS_FILE`, etc. to redirect to temp dirs. All modules use `config.X` references, so patching `config` propagates everywhere.
