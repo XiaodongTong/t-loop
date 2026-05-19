@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tloop-cli"
-version = "0.6.0"
+version = "1.0.0"
 description = "Automated Claude Code task runner"
 readme = "README.md"
 requires-python = ">=3.9"
