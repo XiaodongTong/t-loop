@@ -33,6 +33,7 @@ Task file format (~/.tloop/tasks.yaml):
       # OR:
       prompt_file: ./prompts/my-task.md
       branch: true           # true=auto, "custom/name", false=skip
+      review: false          # true=post-task self-review for code quality
       use: cybervisor        # cybervisor (default) or claude
       max_rounds: 5          # only for use: claude
 
@@ -42,6 +43,9 @@ Task file format (~/.tloop/tasks.yaml):
   Project-level AI instructions can be placed in ./docs/tloop/constitution.md
   within the project directory. If present, tloop will auto-load them as
   constitutional rules when running tasks with the claude runner.
+
+  Use --review (or -r) flag to enable post-task code review for all tasks,
+  or set review: true on individual tasks.
 """
 
 
@@ -139,6 +143,7 @@ def _add_task(path):
         f"{inner}# prompt or prompt_file\n"
         f"{inner}# prompt_file: ./prompts/my-task.md\n"
         f"{inner}branch: true           # true=auto, \"custom/name\", false=skip\n"
+        f"{inner}review: false          # true=post-task self-review for code quality\n"
         f"{inner}use: cybervisor        # cybervisor (default) or claude\n"
         f"{inner}max_rounds: 5          # only for use: claude\n"
     )

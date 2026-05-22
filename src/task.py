@@ -6,6 +6,7 @@ from pathlib import Path
 
 import config
 from git_ops import ensure_clean_git, create_task_branch
+from review import get_head_commit, review_changes
 from runner.cybervisor import CybervisorRunner
 from runner.claude import ClaudeRunner
 from state import save_state
@@ -29,7 +30,7 @@ def resolve_prompt_file(prompt_file, dir_path):
     return Path(prompt_file)
 
 
-def run_task(task, index, state):
+def run_task(task, index, state, review_enabled=False):
     name = task.get("name", f"Task {index + 1}")
     dir_path = expand_dir(task.get("dir", "."))
     prompt = task.get("prompt", "")
@@ -91,6 +92,8 @@ def run_task(task, index, state):
         save_state(state)
         return False
 
+    base_commit = get_head_commit(dir_path) if review_enabled else None
+
     started = datetime.now().isoformat()
     state.setdefault("tasks", {})[str(index)] = {
         "status": "running",
@@ -128,6 +131,14 @@ def run_task(task, index, state):
             }
             save_state(state)
             print(f"\n{config.GREEN}✅ Task [{index + 1}] done{config.RESET}")
+
+            if base_commit:
+                print(f"\n{config.CYAN}[review] Running post-task code review...{config.RESET}")
+                review_ok = review_changes(dir_path, base_commit, log_file)
+                if review_ok:
+                    print(f"{config.GREEN}[review] Complete{config.RESET}")
+                else:
+                    print(f"{config.YELLOW}[review] Finished with warnings{config.RESET}")
         else:
             state["tasks"][str(index)] = {
                 "status": "failed",

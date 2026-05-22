@@ -496,6 +496,7 @@ class PartialRunArchivingTests(unittest.TestCase):
 
         args = argparse.Namespace(
             status=False, reset=False, only=2, confirm=False, continue_on_fail=False,
+            review=False,
         )
         cmd_run.handle(args)
 
@@ -604,13 +605,13 @@ class StatusResetNoArchiveTests(unittest.TestCase):
             p.stop()
 
     def test_status_no_archive(self):
-        args = argparse.Namespace(status=True, reset=False, only=None, confirm=False, continue_on_fail=False)
+        args = argparse.Namespace(status=True, reset=False, only=None, confirm=False, continue_on_fail=False, review=False)
         cmd_run.handle(args)
         archives = list(self.archive_dir.glob("run-*.yaml"))
         self.assertEqual(len(archives), 0)
 
     def test_reset_no_archive(self):
-        args = argparse.Namespace(status=False, reset=True, only=None, confirm=False, continue_on_fail=False)
+        args = argparse.Namespace(status=False, reset=True, only=None, confirm=False, continue_on_fail=False, review=False)
         cmd_run.handle(args)
         archives = list(self.archive_dir.glob("run-*.yaml"))
         self.assertEqual(len(archives), 0)

@@ -16,6 +16,8 @@ def add_parser(subparsers):
     p.add_argument("--confirm", "-i", action="store_true", help="Confirm before each task")
     p.add_argument("--continue", "-c", dest="continue_on_fail", action="store_true",
                     help="Continue even if a task fails")
+    p.add_argument("--review", "-r", action="store_true",
+                    help="Run post-task code review after each task")
     p.set_defaults(func=handle)
 
 
@@ -70,7 +72,8 @@ def handle(args):
                 continue
 
         ran_any = True
-        success = run_task(tasks[i], i, state)
+        should_review = args.review or tasks[i].get("review", False)
+        success = run_task(tasks[i], i, state, review_enabled=should_review)
         if not success and not args.continue_on_fail:
             print(f"\n{config.YELLOW}Stopped. Use -c to continue after failures.{config.RESET}")
             break
