@@ -21,11 +21,13 @@ def main():
     from cmd_edit import add_parser as add_edit
     from cmd_migrate import add_parser as add_migrate
     from cmd_archive import add_parser as add_archive
+    from cmd_commit import add_parser as add_commit
 
     add_run(subparsers)
     add_edit(subparsers)
     add_migrate(subparsers)
     add_archive(subparsers)
+    add_commit(subparsers)
 
     args = parser.parse_args()
 
