@@ -63,6 +63,10 @@ tloop run -c               # 失败后继续执行
 tloop run --reset          # 重置所有任务为待执行
 tloop edit                 # 用 $EDITOR 打开 tasks.yaml
 tloop edit ~/proj/xxx      # 快速添加一条完整任务（含 dir/branch/use/max_rounds），再打开编辑器
+tloop log                  # 列出所有日志文件（任务编号、名称、大小、时间）
+tloop log 3                # 查看第 3 个任务的日志
+tloop log --follow         # 实时追踪最新日志（Ctrl+C 停止）
+tloop log --search ERROR   # 搜索所有日志中的关键词（大小写不敏感）
 tloop archive              # 列出归档记录
 tloop archive --latest     # 显示最近一次归档详情
 tloop migrate              # 迁移旧的项目本地数据到 ~/.tloop/
