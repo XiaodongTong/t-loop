@@ -85,6 +85,7 @@ def ensure_clean_git(dir_path, task_name, log_file=None):
             cwd=dir_path,
             verify_fn=is_git_clean,
             log_file=log_file,
+            verbose=True,
         )
 
     if not is_git_clean(dir_path):
@@ -94,6 +95,7 @@ def ensure_clean_git(dir_path, task_name, log_file=None):
             cwd=dir_path,
             verify_fn=is_git_clean,
             log_file=log_file,
+            verbose=True,
         )
 
     if is_git_clean(dir_path):
