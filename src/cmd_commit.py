@@ -17,6 +17,12 @@ def add_parser(subparsers):
         default=".",
         help="Path to the git repository (default: current directory)",
     )
+    p.add_argument(
+        "-m", "--model",
+        choices=["haiku", "sonnet", "opus"],
+        default="haiku",
+        help="Claude model to use for auto-commit (default: haiku)",
+    )
     p.set_defaults(func=handle)
 
 
@@ -35,7 +41,7 @@ def handle(args):
         print(f"\033[92mWorking tree is already clean.\033[0m")
         return
 
-    success = git_ops.ensure_clean_git(dir_path, "manual commit")
+    success = git_ops.ensure_clean_git(dir_path, "manual commit", model=args.model)
     if success:
         print(f"\033[92mDone.\033[0m")
     else:

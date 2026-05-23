@@ -36,6 +36,7 @@ def run_task(task, index, state, review_enabled=False):
     prompt = task.get("prompt", "")
     prompt_file = task.get("prompt_file")
     branch_config = task.get("branch", True)
+    commit_model = task.get("commit-model", "haiku")
 
     if not os.path.isdir(dir_path):
         print(f"{config.RED}  Directory not found: {dir_path}{config.RESET}")
@@ -74,7 +75,7 @@ def run_task(task, index, state, review_enabled=False):
         log.write(f"Directory: {dir_path}\n")
         log.write("-" * 60 + "\n\n")
 
-    if not ensure_clean_git(dir_path, name, log_file):
+    if not ensure_clean_git(dir_path, name, log_file, model=commit_model):
         state.setdefault("tasks", {})[str(index)] = {
             "status": "failed",
             "error": "Failed to clean working tree via auto-commit",

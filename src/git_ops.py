@@ -71,7 +71,7 @@ def branch_exists(dir_path, name):
     return result.stdout.strip() != ""
 
 
-def ensure_clean_git(dir_path, task_name, log_file=None):
+def ensure_clean_git(dir_path, task_name, log_file=None, model="haiku"):
     if not is_git_repo(dir_path):
         return True
 
@@ -86,6 +86,7 @@ def ensure_clean_git(dir_path, task_name, log_file=None):
             verify_fn=is_git_clean,
             log_file=log_file,
             verbose=True,
+            model=model,
         )
 
     if not is_git_clean(dir_path):
@@ -96,6 +97,7 @@ def ensure_clean_git(dir_path, task_name, log_file=None):
             verify_fn=is_git_clean,
             log_file=log_file,
             verbose=True,
+            model=model,
         )
 
     if is_git_clean(dir_path):

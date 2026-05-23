@@ -19,7 +19,7 @@ EXECUTION_SUFFIX = (
 )
 
 
-def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log_file=None, verbose=False):
+def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log_file=None, verbose=False, model="haiku"):
     """Run `claude -p` with --dangerously-skip-permissions and optional retry loop.
 
     Args:
@@ -29,6 +29,7 @@ def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log
         verify_fn: Optional callable(cwd) -> bool that checks if the work was actually done.
         log_file: Optional path to append logs.
         verbose: If True, print the prompt sent to Claude and the raw output received.
+        model: Model to use ("haiku", "sonnet", "opus"). Passed to `claude --model`.
 
     Returns:
         True if Claude succeeded (and passed verification if provided), False otherwise.
@@ -40,7 +41,7 @@ def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log
         print(prompt)
         print(f"{CYAN}--- end ---{RESET}")
 
-    cmd = ["claude", "--dangerously-skip-permissions", "--print", enriched_prompt]
+    cmd = ["claude", "--dangerously-skip-permissions", "--model", model, "--print", enriched_prompt]
 
     for attempt in range(1, max_retries + 1):
         if attempt > 1:
@@ -54,7 +55,7 @@ def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log
         else:
             attempt_cmd = cmd
 
-        print(f"  Running claude (attempt {attempt}/{max_retries})...")
+        print(f"  Running claude --model {model} (attempt {attempt}/{max_retries})...")
         try:
             result = subprocess.run(
                 attempt_cmd,
@@ -72,7 +73,7 @@ def run_claude(prompt, cwd, max_retries=DEFAULT_MAX_RETRIES, verify_fn=None, log
 
         if log_file:
             with open(log_file, "a") as log:
-                log.write(f"[claude_runner] attempt {attempt}/{max_retries} exit={result.returncode}\n")
+                log.write(f"[claude_runner] model={model} attempt {attempt}/{max_retries} exit={result.returncode}\n")
                 if result.stdout:
                     log.write(result.stdout + "\n")
                 if result.stderr:

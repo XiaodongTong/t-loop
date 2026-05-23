@@ -60,7 +60,7 @@ class ClaudeRunner(Runner):
                 print(f"{'='*60}")
 
                 process = subprocess.Popen(
-                    ["claude", "-p", "--dangerously-skip-permissions"],
+                    ["claude", "-p", "--dangerously-skip-permissions", "--model", "opus"],
                     cwd=cwd,
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
