@@ -1,10 +1,6 @@
-"""tloop log — view, search, and follow task logs."""
+"""tloop log — view task logs."""
 
-import os
-import re
-import signal
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
 
@@ -20,14 +16,9 @@ _STATUS_COLORS = {
 
 
 def add_parser(subparsers):
-    p = subparsers.add_parser("log", help="View, search, and follow task logs")
-    group = p.add_mutually_exclusive_group()
-    group.add_argument("task_number", nargs="?", type=int,
-                       help="Show log for task #N (1-based)")
-    group.add_argument("--follow", "-f", action="store_true",
-                       help="Tail the most recent log in real time")
-    group.add_argument("--search", "-s", metavar="PATTERN",
-                       help="Search all logs for a pattern (case-insensitive)")
+    p = subparsers.add_parser("log", help="View task logs")
+    p.add_argument("task_number", nargs="?", type=int,
+                   help="Show log for task #N (1-based)")
     p.set_defaults(func=handle)
 
 
@@ -120,83 +111,8 @@ def _show_log(task_number):
     sys.exit(1)
 
 
-def _follow_log():
-    log_files = _get_log_files()
-    if not log_files:
-        print("No log files found")
-        return
-
-    latest = max(log_files, key=lambda f: f.stat().st_mtime)
-    task_name = _extract_task_name(latest)
-    print(f"Following {latest.name} ({task_name}) — Ctrl+C to stop")
-
-    try:
-        with open(latest, errors="replace") as f:
-            lines = f.readlines()
-            tail_lines = lines[-20:] if len(lines) > 20 else lines
-            for line in tail_lines:
-                sys.stdout.write(line)
-            sys.stdout.flush()
-
-            stopped = [False]
-
-            def _sigint_handler(signum, frame):
-                stopped[0] = True
-
-            old_handler = signal.signal(signal.SIGINT, _sigint_handler)
-
-            while not stopped[0]:
-                try:
-                    where = f.tell()
-                    new_data = f.read()
-                    if new_data:
-                        sys.stdout.write(new_data)
-                        sys.stdout.flush()
-                    else:
-                        f.seek(where)
-                        time.sleep(1)
-                except KeyboardInterrupt:
-                    break
-
-            signal.signal(signal.SIGINT, old_handler)
-            print()
-    except OSError as e:
-        print(f"Error reading {latest.name}: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-def _search_logs(pattern):
-    log_files = _get_log_files()
-    if not log_files:
-        print("No log files found")
-        sys.exit(1)
-
-    regex = re.compile(re.escape(pattern), re.IGNORECASE)
-    found = False
-
-    for lf in log_files:
-        task_num = _parse_task_number(lf)
-        task_name = _extract_task_name(lf)
-        prefix = f"{task_num}:{task_name}" if task_num is not None else f"?:{task_name}"
-        try:
-            with open(lf, errors="replace") as f:
-                for line_no, line in enumerate(f, 1):
-                    if regex.search(line):
-                        found = True
-                        line = line.rstrip("\n")
-                        print(f"  [{prefix}] {line}")
-        except OSError:
-            continue
-
-    sys.exit(0 if found else 1)
-
-
 def handle(args):
-    if args.follow:
-        _follow_log()
-    elif args.search:
-        _search_logs(args.search)
-    elif args.task_number is not None:
+    if args.task_number is not None:
         _show_log(args.task_number)
     else:
         _list_logs()

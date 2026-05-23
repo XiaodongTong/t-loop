@@ -33,6 +33,7 @@ def ensure_tloop_home():
     LOGS_DIR.mkdir(exist_ok=True)
     ARCHIVE_DIR.mkdir(exist_ok=True)
 
+
     if not TASKS_FILE.exists():
         TASKS_FILE.write_text(SAMPLE_TASKS_YAML)
         print(f"{GREEN}Created {TASKS_FILE}{RESET}")

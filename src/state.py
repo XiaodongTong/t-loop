@@ -2,7 +2,6 @@
 
 import json
 from datetime import datetime
-from pathlib import Path
 
 import yaml
 
@@ -94,49 +93,3 @@ def archive_completed_tasks(config_data, state):
     save_state({"tasks": {}, "version": 1})
 
     print(f"\n{config.GREEN}Archived {done_count} completed task(s) to {archive_file.name}{config.RESET}")
-
-
-def show_archives(latest=False):
-    if not config.ARCHIVE_DIR.exists():
-        print("No archive files found.")
-        return
-
-    archives = sorted(config.ARCHIVE_DIR.glob("run-*.yaml"), reverse=True)
-    if not archives:
-        print("No archive files found.")
-        return
-
-    if latest:
-        with open(archives[0]) as f:
-            data = yaml.safe_load(f)
-        print(f"{config.BOLD}Latest archive: {archives[0].name}{config.RESET}")
-        print(f"  Archived at: {data.get('archived_at', 'unknown')}")
-        summary = data.get("run_summary", {})
-        print(
-            f"  Total: {summary.get('total', 0)}, "
-            f"Done: {summary.get('done', 0)}, "
-            f"Failed: {summary.get('failed', 0)}, "
-            f"Pending: {summary.get('pending', 0)}"
-        )
-        print()
-        for entry in data.get("tasks", []):
-            task = entry.get("task", {})
-            result = entry.get("result", {})
-            name = task.get("name", "Unnamed")
-            status = result.get("status", "unknown")
-            icon = get_status_icon(status)
-            finished = result.get("finished_at", "")
-            extra = f"  ({finished[:16]})" if finished else ""
-            print(f"  {icon} {name}{extra}")
-    else:
-        print(f"{config.BOLD}Archive files:{config.RESET}")
-        for archive in archives:
-            with open(archive) as f:
-                data = yaml.safe_load(f)
-            summary = data.get("run_summary", {})
-            print(
-                f"  {archive.name}  "
-                f"(done: {summary.get('done', 0)}, "
-                f"failed: {summary.get('failed', 0)}, "
-                f"total: {summary.get('total', 0)})"
-            )
